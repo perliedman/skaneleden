@@ -10,6 +10,7 @@ import WMTS from "ol/source/WMTS";
 import proj4 from "proj4";
 import { register } from "ol/proj/proj4";
 import RouteLayer from "./RouteLayer";
+import { MapBrowserEvent } from "ol";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
@@ -27,7 +28,7 @@ function App() {
 
   useEffect(() => {
     if (map && routeLayer) {
-      const key = map.on("click", (e) => {
+      const onClick = (e: MapBrowserEvent<any>) => {
         const segment = routeLayer.getSegmentAtPixel(map, e.pixel);
         let ref: string | null = null;
         if (segment) {
@@ -37,10 +38,11 @@ function App() {
           setSelectedSegment(null);
         }
         routeLayer.setHighlightedRef(ref);
-      });
+      };
+      map.on("click", onClick);
 
       return () => {
-        map.un("click", key);
+        map.un("click", onClick);
       };
     }
   }, [map, routeLayer]);
@@ -74,7 +76,7 @@ function useLmMap(containerRef: MutableRefObject<null>) {
       const apiKey = "37042918-314e-32e3-a668-e6f62a0cf410";
       const extent = [-1200000, 4700000, 2600000, 8500000];
       const maxZoom = 9;
-      const zoomLevels = Array.from({ length: maxZoom + 1 }, (v, k) => k);
+      const zoomLevels = Array.from({ length: maxZoom + 1 }, (_, k) => k);
       const resolutions = zoomLevels.map((z) => 4096 / Math.pow(2, z));
       const matrixIds = zoomLevels.map((z) => z.toString());
 

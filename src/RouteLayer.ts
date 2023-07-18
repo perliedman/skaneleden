@@ -65,7 +65,7 @@ export default class RouteLayer {
       }),
     ];
 
-    const styleFunction = (feature: FeatureLike, resolution: number) => {
+    const styleFunction = (feature: FeatureLike) => {
       const relations = feature.get("@relations") as Array<{
         reltags: Record<string, string>;
       }>;
