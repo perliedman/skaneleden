@@ -60,7 +60,7 @@ function App() {
         ref={mapContainer}
       />
       {selectedSegment && (
-        <div className="absolute bottom-0 left-0 right-0 h-16 p-4 bg-white flex flex-row items-center space-x-4">
+        <div className="absolute top-0 left-0 right-0 h-16 p-4 bg-white flex flex-row items-center space-x-4">
           <div className="font-bold text-lg">{selectedSegment.name}</div>
           <div>{selectedSegment.distance} km</div>
         </div>
