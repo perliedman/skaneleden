@@ -11,14 +11,41 @@ import routeData from "./data/skaneleden.json";
 import Feature, { FeatureLike } from "ol/Feature";
 import { Pixel } from "ol/pixel";
 import Map from "ol/Map";
+import PathFinder from "geojson-path-finder";
+import { Coordinate } from "ol/coordinate";
+import RBush from "rbush";
+import knn from "rbush-knn";
 
 const routeColor = "#4466aa";
 const highlightColor = "#ff4422";
+
+type GeoJSONPoint = {
+  type: "Point";
+  coordinates: Coordinate;
+};
+
+type GeoJSONLineString = {
+  type: "LineString";
+  coordinates: Coordinate[];
+};
+
+type GeoJSONFeature<T> = {
+  type: "Feature";
+  properties: Record<string, unknown>;
+  geometry: T;
+};
+
+type FeatureCollection<T> = {
+  type: "FeatureCollection";
+  features: GeoJSONFeature<T>[];
+};
 
 export default class RouteLayer {
   source: VectorSource<LineString>;
   layer: VectorLayer<VectorSource<LineString>>;
   highlightedRef: string | null = null;
+  pathFinder: PathFinder<void, Record<string, unknown>>;
+  coordinatesIndex: CoordinateRBush;
 
   constructor() {
     const features = new GeoJSON().readFeatures(routeData, {
@@ -88,6 +115,16 @@ export default class RouteLayer {
       style: styleFunction,
       zIndex: 1,
     });
+
+    this.pathFinder = new PathFinder(routeData);
+    this.coordinatesIndex = new CoordinateRBush();
+    const coordinates = (
+      routeData as FeatureCollection<GeoJSONLineString | GeoJSONPoint>
+    ).features
+      .filter(isLineString)
+      .map((feature) => feature.geometry.coordinates)
+      .flat(1);
+    this.coordinatesIndex.load(coordinates);
   }
 
   getSegmentAtPixel(map: Map, pixel: Pixel) {
@@ -108,4 +145,37 @@ export default class RouteLayer {
     this.highlightedRef = ref;
     this.source.changed();
   }
+
+  route(waypoints: Coordinate[]) {
+    const [startX, startY] = waypoints[0];
+    const [endX, endY] = waypoints[waypoints.length - 1];
+    const [start] = knn<Coordinate>(this.coordinatesIndex, startX, startY, 1);
+    const [end] = knn<Coordinate>(this.coordinatesIndex, endX, endY, 1);
+    return this.pathFinder.findPath(point(start), point(end));
+  }
+}
+
+class CoordinateRBush extends RBush<Coordinate> {
+  toBBox([x, y]: Coordinate) {
+    return { minX: x, minY: y, maxX: x, maxY: y };
+  }
+  compareMinX(a: Coordinate, b: Coordinate) {
+    return a[0] - b[0];
+  }
+  compareMinY(a: Coordinate, b: Coordinate) {
+    return a[1] - b[1];
+  }
+}
+function isLineString(
+  feature: GeoJSONFeature<GeoJSONLineString | GeoJSONPoint>
+): feature is GeoJSONFeature<GeoJSONLineString> {
+  return feature.geometry.type === "LineString";
+}
+
+function point(coordinates: Coordinate) {
+  return {
+    type: "Feature",
+    properties: {},
+    geometry: { type: "Point", coordinates },
+  };
 }
