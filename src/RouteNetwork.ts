@@ -15,6 +15,7 @@ import PathFinder from "geojson-path-finder";
 import { Coordinate } from "ol/coordinate";
 import RBush from "rbush";
 import knn from "rbush-knn";
+import { outlinedStyle } from "./map-style";
 
 const routeColor = "#4466aa";
 const highlightColor = "#ff4422";
@@ -40,7 +41,7 @@ type FeatureCollection<T> = {
   features: GeoJSONFeature<T>[];
 };
 
-export default class RouteLayer {
+export default class RouteNetwork {
   source: VectorSource<LineString>;
   layer: VectorLayer<VectorSource<LineString>>;
   highlightedRef: string | null = null;
@@ -56,54 +57,20 @@ export default class RouteLayer {
       features,
     }));
 
-    const style = [
-      new Style({
-        image: new Circle({
-          radius: 5,
-          fill: new Fill({
-            color: "white",
-          }),
-          stroke: new Stroke({
-            color: "#4466aa",
-            width: 2,
-          }),
-        }),
-      }),
-      new Style({
-        stroke: new Stroke({
-          color: "black",
-          width: 7,
-        }),
-        zIndex: 0,
-      }),
-      new Style({
-        stroke: new Stroke({
-          color: "white",
-          width: 6,
-        }),
-        zIndex: 1,
-      }),
-      new Style({
-        stroke: new Stroke({
-          color: routeColor,
-          width: 3,
-        }),
-        zIndex: 2,
-      }),
-    ];
+    const style = outlinedStyle(routeColor, 7);
 
     const styleFunction = (feature: FeatureLike) => {
       const relations = feature.get("@relations") as Array<{
         reltags: Record<string, string>;
       }>;
       let isHighlighted = false;
-      if (relations && relations.length > 0) {
+      if (this.highlightedRef && relations && relations.length > 0) {
         const [relation] = relations;
         const { reltags } = relation;
         const ref = reltags.name;
         isHighlighted = ref === this.highlightedRef;
       }
-      style[3]
+      style[2]
         .getStroke()
         .setColor(isHighlighted ? highlightColor : routeColor);
 
@@ -134,10 +101,16 @@ export default class RouteLayer {
     });
     if (features.length > 0) {
       const [feature] = features;
-      const [relation] = feature.get("@relations") as Array<{
+      const relations = feature.get("@relations") as Array<{
         reltags: Record<string, string>;
-      }>;
-      return relation.reltags;
+      }> | null;
+      if (relations && relations.length > 0) {
+        const [relation] = relations;
+        return relation.reltags;
+      } else {
+        console.log(feature.getProperties());
+        return null;
+      }
     }
   }
 
@@ -152,6 +125,12 @@ export default class RouteLayer {
     const [start] = knn<Coordinate>(this.coordinatesIndex, startX, startY, 1);
     const [end] = knn<Coordinate>(this.coordinatesIndex, endX, endY, 1);
     return this.pathFinder.findPath(point(start), point(end));
+  }
+
+  getClosestNetworkCoordinate(coordinate: Coordinate) {
+    const [x, y] = coordinate;
+    const [closest] = knn<Coordinate>(this.coordinatesIndex, x, y, 1);
+    return closest;
   }
 }
 
