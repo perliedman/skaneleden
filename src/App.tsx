@@ -30,60 +30,12 @@ function App() {
 
   const map = useLmMap(mapContainer);
   const routeNetwork = useRouteNetwork(map);
-  const [selectedSegment, setSelectedSegment] = useState<Record<
-    string,
-    string
-  > | null>(null);
-  const [waypoints, setWaypoints] = useState<Coordinate[]>([]);
 
-  useEffect(() => {
-    const containerElement = mapContainer.current;
-    if (containerElement && map && routeNetwork) {
-      let longpress = false;
-      const onClick = (e: MapBrowserEvent<any>) => {
-        if (!longpress) {
-          const segment = routeNetwork.getSegmentAtPixel(map, e.pixel);
-          let ref: string | null = null;
-          if (segment) {
-            ref = segment.name;
-            setSelectedSegment(segment);
-          } else {
-            setSelectedSegment(null);
-          }
-          routeNetwork.setHighlightedRef(ref);
-        }
-        longpress = false;
-      };
-      map.on("click", onClick);
-
-      const onLongPress = (e: MouseEvent) => {
-        longpress = true;
-        e.preventDefault();
-        const coord = routeNetwork.getClosestNetworkCoordinate(
-          toLonLat(map.getEventCoordinate(e), "EPSG:3006")
-        );
-
-        setWaypoints((waypoints) => {
-          const nextWaypoints = [...waypoints];
-          if (nextWaypoints.length > 0) {
-            nextWaypoints[1] = coord;
-          } else {
-            nextWaypoints.push(coord);
-          }
-          return nextWaypoints;
-        });
-      };
-
-      containerElement.addEventListener("contextmenu", onLongPress);
-
-      return () => {
-        map.un("click", onClick);
-        containerElement.removeEventListener("contextmenu", onLongPress);
-      };
-    }
-  }, [map, routeNetwork]);
-
-  useWaypointsLayer(map, routeNetwork, waypoints, setWaypoints);
+  const { waypoints, clearWaypoints, selectedSegment } = useWaypoints(
+    map,
+    mapContainer,
+    routeNetwork
+  );
 
   const route = useMemo(() => {
     if (routeNetwork && waypoints.length > 1) {
@@ -101,25 +53,9 @@ function App() {
     return null;
   }, [routeNetwork, waypoints]);
 
-  useEffect(() => {
-    if (map && route) {
-      const routeLayer = new VectorLayer({
-        source: new VectorSource({
-          features: [new Feature(new LineString(route.routeCoordinates))],
-        }),
-        style: outlinedStyle("purple", 8),
-        zIndex: 2,
-      });
+  useRouteLayer(map, route);
 
-      map.addLayer(routeLayer);
-
-      return () => {
-        map.removeLayer(routeLayer);
-      };
-    }
-  }, [map, route]);
-
-  route && console.log(route);
+  const showInfo = selectedSegment || waypoints.length > 1;
 
   return (
     <>
@@ -133,17 +69,19 @@ function App() {
         }}
         ref={mapContainer}
       />
-      {(selectedSegment || waypoints.length > 1) && (
+      {showInfo && (
         <div className="absolute top-0 left-0 right-0 h-16 p-4 bg-white flex flex-row justify-between items-center space-x-4 shadow">
           {route ? (
             <>
               <div className="text-lg">
-                Planerad rutt:{" "}
+                Planerad tur:{" "}
                 <span className="font-bold">
                   {route.routeDistance.toFixed(1)} km
                 </span>
               </div>
-              <button onClick={() => setWaypoints([])}>X</button>
+              <button onClick={clearWaypoints} className="text-2xl">
+                ×
+              </button>
             </>
           ) : selectedSegment ? (
             <>
@@ -155,7 +93,12 @@ function App() {
               <div>{selectedSegment.distance} km</div>
             </>
           ) : waypoints.length > 1 ? (
-            <>Kunde inte hitta en väg mellan de här punkterna 🤔</>
+            <>
+              <div>Kunde inte hitta en väg mellan de här punkterna 🤔</div>{" "}
+              <button onClick={clearWaypoints} className="text-2xl">
+                ×
+              </button>
+            </>
           ) : null}
         </div>
       )}
@@ -247,6 +190,69 @@ const iconStyle = new Style({
   }),
 });
 
+function useWaypoints(
+  map: Map | null,
+  mapContainer: MutableRefObject<HTMLDivElement | null>,
+  routeNetwork: RouteNetwork | null
+) {
+  const [selectedSegment, setSelectedSegment] = useState<Record<
+    string,
+    string
+  > | null>(null);
+  const [waypoints, setWaypoints] = useState<Coordinate[]>([]);
+
+  useEffect(() => {
+    const containerElement = mapContainer.current;
+    if (containerElement && map && routeNetwork) {
+      let longpress = false;
+      const onClick = (e: MapBrowserEvent<any>) => {
+        if (!longpress) {
+          const segment = routeNetwork.getSegmentAtPixel(map, e.pixel);
+          let ref: string | null = null;
+          if (segment) {
+            ref = segment.name;
+            setSelectedSegment(segment);
+          } else {
+            setSelectedSegment(null);
+          }
+          routeNetwork.setHighlightedRef(ref);
+        }
+        longpress = false;
+      };
+      map.on("click", onClick);
+
+      const onLongPress = (e: MouseEvent) => {
+        longpress = true;
+        e.preventDefault();
+        const coord = routeNetwork.getClosestNetworkCoordinate(
+          toLonLat(map.getEventCoordinate(e), "EPSG:3006")
+        );
+
+        setWaypoints((waypoints) => {
+          const nextWaypoints = [...waypoints];
+          if (nextWaypoints.length > 0) {
+            nextWaypoints[1] = coord;
+          } else {
+            nextWaypoints.push(coord);
+          }
+          return nextWaypoints;
+        });
+      };
+
+      containerElement.addEventListener("contextmenu", onLongPress);
+
+      return () => {
+        map.un("click", onClick);
+        containerElement.removeEventListener("contextmenu", onLongPress);
+      };
+    }
+  }, [map, mapContainer, routeNetwork]);
+
+  useWaypointsLayer(map, routeNetwork, waypoints, setWaypoints);
+
+  return { waypoints, clearWaypoints: () => setWaypoints([]), selectedSegment };
+}
+
 function useWaypointsLayer(
   map: Map | null,
   routeNetwork: RouteNetwork | null,
@@ -316,3 +322,26 @@ function useWaypointsLayer(
 }
 
 export default App;
+
+function useRouteLayer(
+  map: Map | null,
+  route: { routeCoordinates: Coordinate[]; routeDistance: number } | null
+) {
+  useEffect(() => {
+    if (map && route) {
+      const routeLayer = new VectorLayer({
+        source: new VectorSource({
+          features: [new Feature(new LineString(route.routeCoordinates))],
+        }),
+        style: outlinedStyle("purple", 8),
+        zIndex: 2,
+      });
+
+      map.addLayer(routeLayer);
+
+      return () => {
+        map.removeLayer(routeLayer);
+      };
+    }
+  }, [map, route]);
+}
