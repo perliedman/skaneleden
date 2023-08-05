@@ -1,6 +1,4 @@
 import { ColorLike } from "ol/colorlike";
-import Circle from "ol/style/Circle";
-import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import Style from "ol/style/Style";
 

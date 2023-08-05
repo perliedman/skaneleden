@@ -1,11 +1,7 @@
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
-import Style from "ol/style/Style";
-import Stroke from "ol/style/Stroke";
-import Circle from "ol/style/Circle";
 import LineString from "ol/geom/LineString";
-import Fill from "ol/style/Fill";
 
 import routeData from "./data/skaneleden.json";
 import Feature, { FeatureLike } from "ol/Feature";

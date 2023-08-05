@@ -18,7 +18,6 @@ import VectorSource from "ol/source/Vector";
 import Modify from "ol/interaction/Modify";
 import { LineString, Point } from "ol/geom";
 import Style from "ol/style/Style";
-import Stroke from "ol/style/Stroke";
 import Icon from "ol/style/Icon";
 import { outlinedStyle } from "./map-style";
 
