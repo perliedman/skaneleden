@@ -10,7 +10,7 @@ import WMTS from "ol/source/WMTS";
 import proj4 from "proj4";
 import { register } from "ol/proj/proj4";
 import RouteNetwork from "./RouteNetwork";
-import { Feature, MapBrowserEvent } from "ol";
+import { Feature, Geolocation, MapBrowserEvent } from "ol";
 import { toLonLat, transform } from "ol/proj";
 import { Coordinate } from "ol/coordinate";
 import VectorLayer from "ol/layer/Vector";
@@ -20,6 +20,9 @@ import { LineString, Point } from "ol/geom";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
 import { outlinedStyle } from "./map-style";
+import Circle from "ol/style/Circle";
+import Fill from "ol/style/Fill";
+import Stroke from "ol/style/Stroke";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
@@ -54,6 +57,7 @@ function App() {
   }, [routeNetwork, waypoints]);
 
   useRouteLayer(map, route);
+  useGeolocation(map);
 
   const showInfo = selectedSegment || waypoints.length > 1;
 
@@ -344,4 +348,54 @@ function useRouteLayer(
       };
     }
   }, [map, route]);
+}
+
+function useGeolocation(map: Map | null) {
+  useEffect(() => {
+    if (map) {
+      const geolocation = new Geolocation({
+        trackingOptions: {
+          enableHighAccuracy: true,
+        },
+        projection: "EPSG:3006",
+      });
+      geolocation.setTracking(true);
+
+      const positionFeature = new Feature();
+
+      geolocation.on("change:position", () => {
+        const coordinates = geolocation.getPosition();
+        if (coordinates) {
+          positionFeature.setGeometry(
+            coordinates ? new Point(coordinates) : undefined
+          );
+        }
+      });
+
+      const layer = new VectorLayer({
+        source: new VectorSource({
+          features: [positionFeature],
+        }),
+        style: new Style({
+          image: new Circle({
+            radius: 6,
+            fill: new Fill({
+              color: "#4466aa",
+            }),
+            stroke: new Stroke({
+              color: "#fff",
+              width: 2,
+            }),
+          }),
+        }),
+        zIndex: 5,
+      });
+
+      map.addLayer(layer);
+
+      return () => {
+        map.removeLayer(layer);
+      };
+    }
+  }, [map]);
 }
