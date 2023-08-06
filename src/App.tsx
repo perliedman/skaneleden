@@ -23,6 +23,7 @@ import { outlinedStyle } from "./map-style";
 import Circle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
+import About from "./About";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
@@ -30,6 +31,7 @@ register(proj4);
 
 function App() {
   const mapContainer: MutableRefObject<HTMLDivElement | null> = useRef(null);
+  const [aboutOpen, setAboutOpen] = useState(true);
 
   const map = useLmMap(mapContainer);
   const routeNetwork = useRouteNetwork(map);
@@ -59,7 +61,7 @@ function App() {
   useRouteLayer(map, route);
   useGeolocation(map);
 
-  const showInfo = selectedSegment || waypoints.length > 1;
+  const showInfo = aboutOpen || selectedSegment || waypoints.length > 1;
 
   return (
     <>
@@ -74,7 +76,7 @@ function App() {
         ref={mapContainer}
       />
       {showInfo && (
-        <div className="absolute top-0 left-0 right-0 h-16 p-4 bg-white flex flex-row justify-between items-center space-x-4 shadow">
+        <div className="absolute top-0 left-0 right-0 p-4 bg-white flex flex-row justify-between items-center space-x-4 shadow">
           {route ? (
             <>
               <div className="text-lg">
@@ -120,9 +122,30 @@ function App() {
               </div>
               <div>{selectedSegment.distance} km</div>
             </>
+          ) : aboutOpen ? (
+            <About onClose={() => setAboutOpen(false)} />
           ) : null}
         </div>
       )}
+      <button
+        className="absolute bottom-0 right-0 m-1 p-1 bg-white shadow rounded"
+        onClick={() => setAboutOpen(true)}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="w-6 h-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+          />
+        </svg>
+      </button>
     </>
   );
 }
