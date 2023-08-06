@@ -325,7 +325,7 @@ function useWaypointsLayer(
         map.removeInteraction(modify);
       };
     }
-  }, [map, routeNetwork, source, setWaypoints, waypoints]);
+  }, [map, routeNetwork, source, setWaypoints, waypoints, layer]);
 
   useEffect(() => {
     if (map) {
