@@ -87,13 +87,24 @@ function App() {
                 ×
               </button>
             </>
+          ) : waypoints.length > 1 ? (
+            <>
+              <div>Kunde inte hitta en väg mellan de här punkterna 🤔</div>{" "}
+              <button onClick={clearWaypoints} className="text-2xl">
+                ×
+              </button>
+            </>
           ) : selectedSegment ? (
             <>
               <div className="flex flex-col items-start">
                 <div className="font-bold text-lg">
                   {selectedSegment.name
                     ?.replace("Skåneleden", "SL")
-                    .replace("Etapp", "E")}
+                    .replace("Etapp", "E") || (
+                    <span className="text-gray-400">
+                      (Etappens namn saknas)
+                    </span>
+                  )}
                 </div>
                 {selectedSegment.website ? (
                   <div className="text-sm">
@@ -108,13 +119,6 @@ function App() {
                 ) : null}
               </div>
               <div>{selectedSegment.distance} km</div>
-            </>
-          ) : waypoints.length > 1 ? (
-            <>
-              <div>Kunde inte hitta en väg mellan de här punkterna 🤔</div>{" "}
-              <button onClick={clearWaypoints} className="text-2xl">
-                ×
-              </button>
             </>
           ) : null}
         </div>
