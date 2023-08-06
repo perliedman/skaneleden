@@ -89,10 +89,23 @@ function App() {
             </>
           ) : selectedSegment ? (
             <>
-              <div className="font-bold text-lg">
-                {selectedSegment.name
-                  ?.replace("Skåneleden", "SL")
-                  .replace("Etapp", "E")}
+              <div className="flex flex-col items-start">
+                <div className="font-bold text-lg">
+                  {selectedSegment.name
+                    ?.replace("Skåneleden", "SL")
+                    .replace("Etapp", "E")}
+                </div>
+                {selectedSegment.website ? (
+                  <div className="text-sm">
+                    <a
+                      href={selectedSegment.website}
+                      target="_blank"
+                      className="text-blue-600 hover:underline"
+                    >
+                      &raquo; Mer info på skåneleden.se
+                    </a>
+                  </div>
+                ) : null}
               </div>
               <div>{selectedSegment.distance} km</div>
             </>
