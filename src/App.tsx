@@ -154,9 +154,8 @@ function useLmMap(containerRef: MutableRefObject<HTMLDivElement | null>) {
   const [map, setMap] = useState<Map | null>(null);
   useEffect(() => {
     if (containerRef.current) {
-      const apiKey = "37042918-314e-32e3-a668-e6f62a0cf410";
       const extent = [-1200000, 4700000, 2600000, 8500000];
-      const maxZoom = 9;
+      const maxZoom = 12;
       const zoomLevels = Array.from({ length: maxZoom + 1 }, (_, k) => k);
       const resolutions = zoomLevels.map((z) => 4096 / Math.pow(2, z));
       const matrixIds = zoomLevels.map((z) => z.toString());
@@ -171,11 +170,7 @@ function useLmMap(containerRef: MutableRefObject<HTMLDivElement | null>) {
       const topowebb = new TileLayer({
         extent: extent,
         source: new WMTS({
-          url:
-            "https://api.lantmateriet.se/open/topowebb-ccby/v1/wmts/token/" +
-            apiKey +
-            "/",
-          // url: 'https://minkarta.lantmateriet.se/map/topowebbcache',
+          url: "https://minkarta.lantmateriet.se/map/topowebbcache",
           layer: "topowebb",
           format: "image/png",
           matrixSet: "3006",
