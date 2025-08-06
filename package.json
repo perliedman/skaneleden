@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.0",
     "@turf/explode": "^6.5.0",
     "geojson-path-finder": "^2.0.2",
     "ol": "^7.4.0",

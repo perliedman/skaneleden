@@ -5,6 +5,7 @@ import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
 import "ol/ol.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import WMTSGrid from "ol/tilegrid/WMTS";
 import WMTS from "ol/source/WMTS";
 import proj4 from "proj4";
@@ -24,6 +25,7 @@ import Circle from "ol/style/Circle";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import About from "./About";
+import { Poi, PoiGroup, usePois } from "./pois";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
 proj4.defs("EPSG:3006", "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs");
@@ -36,11 +38,13 @@ function App() {
   const map = useLmMap(mapContainer);
   const routeNetwork = useRouteNetwork(map);
 
-  const { waypoints, clearWaypoints, selectedSegment } = useWaypoints(
-    map,
-    mapContainer,
-    routeNetwork
-  );
+  const [visiblePoiGroups] = useState<Record<PoiGroup, boolean>>({
+    basics: true,
+    food: false,
+    transport: false,
+  });
+  const { waypoints, clearWaypoints, selectedSegment, selectedPoi } =
+    useWaypoints(map, mapContainer, routeNetwork, visiblePoiGroups);
 
   const route = useMemo(() => {
     if (routeNetwork && waypoints.length > 1) {
@@ -61,7 +65,8 @@ function App() {
   useRouteLayer(map, route);
   useGeolocation(map);
 
-  const showInfo = aboutOpen || selectedSegment || waypoints.length > 1;
+  const showInfo =
+    aboutOpen || selectedSegment || selectedPoi || waypoints.length > 1;
 
   return (
     <>
@@ -122,6 +127,8 @@ function App() {
               </div>
               <div>{selectedSegment.distance} km</div>
             </>
+          ) : selectedPoi ? (
+            <Poi poi={selectedPoi} />
           ) : aboutOpen ? (
             <About onClose={() => setAboutOpen(false)} />
           ) : null}
@@ -178,6 +185,7 @@ function useLmMap(containerRef: MutableRefObject<HTMLDivElement | null>) {
           version: "1.0.0",
           style: "default",
           crossOrigin: "anonymous",
+          attributions: "Bakgrundskarta © Lantmäteriet",
         }),
         zIndex: 0,
       });
@@ -232,13 +240,16 @@ const iconStyle = new Style({
 function useWaypoints(
   map: Map | null,
   mapContainer: MutableRefObject<HTMLDivElement | null>,
-  routeNetwork: RouteNetwork | null
+  routeNetwork: RouteNetwork | null,
+  visiblePoiGroups: Record<PoiGroup, boolean>
 ) {
   const [selectedSegment, setSelectedSegment] = useState<Record<
     string,
     string
   > | null>(null);
+  const [selectedPoi, setSelectedPoi] = useState<Feature | null>();
   const [waypoints, setWaypoints] = useState<Coordinate[]>([]);
+  const { getPoisAtPixel } = usePois(map, visiblePoiGroups);
 
   useEffect(() => {
     const containerElement = mapContainer.current;
@@ -246,6 +257,15 @@ function useWaypoints(
       let longpress = false;
       const onClick = (e: MapBrowserEvent<any>) => {
         if (!longpress) {
+          const pois = getPoisAtPixel(e.pixel);
+          if (pois.length > 0) {
+            setSelectedPoi(pois[0]);
+            setSelectedSegment(null);
+            routeNetwork.setHighlightedRef(null);
+            return;
+          }
+
+          setSelectedPoi(null);
           const segment = routeNetwork.getSegmentAtPixel(map, e.pixel);
           let ref: string | null = null;
           if (segment) {
@@ -285,11 +305,16 @@ function useWaypoints(
         containerElement.removeEventListener("contextmenu", onLongPress);
       };
     }
-  }, [map, mapContainer, routeNetwork]);
+  }, [getPoisAtPixel, map, mapContainer, routeNetwork]);
 
   useWaypointsLayer(map, routeNetwork, waypoints, setWaypoints);
 
-  return { waypoints, clearWaypoints: () => setWaypoints([]), selectedSegment };
+  return {
+    waypoints,
+    clearWaypoints: () => setWaypoints([]),
+    selectedSegment,
+    selectedPoi,
+  };
 }
 
 function useWaypointsLayer(
