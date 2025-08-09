@@ -1,5 +1,4 @@
 import { useState } from "react";
-import "./App.css";
 
 export default function About({ onClose }: { onClose: () => void }) {
   const [showMore, setShowMore] = useState(false);
