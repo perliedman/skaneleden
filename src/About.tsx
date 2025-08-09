@@ -6,7 +6,7 @@ export default function About({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div>
-        <img src="/favicon.png" className="w-8" />
+        <img src="/skaneleden/favicon.png" className="w-8" />
       </div>
       <div className="flex-grow justify-self-start max-w-xl mx-auto">
         <div className="text-lg tracking-wider">Skåneleden</div>
